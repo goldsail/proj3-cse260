@@ -8,8 +8,16 @@
 #include <assert.h>
 // Needed for memalign
 #include <malloc.h>
+#include <utility>
 
 using namespace std;
+
+#include "cblock.h"
+#include "time.h"
+#include "apf.h"
+#include "Plotting.h"
+#include <mpi.h>
+extern control_block cb;
 
 void printMat(const char mesg[], double *E, int m, int n);
 
@@ -56,11 +64,33 @@ void init (double *E,double *E_prev,double *R,int m,int n){
 #endif
 }
 
+inline int getRank() {
+  int myrank=0;
+  MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+  return myrank;
+}
+
+inline int getNProcs() {
+    int nprocs=1;
+    MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
+    return nprocs;
+}
+
+pair<int, int> computeBlockSize(int m, int n, int x, int y) {
+  int rank = getRank(), rankx = rank%x, ranky = rank/x;
+  int nprocs = getNProcs(), nprocsx = x, nprocsy = y;
+  int a = m/nprocsx + (rankx < m%nprocsx);
+  int b = n/nprocsy + (ranky < n%nprocsy);
+  return make_pair(a, b); // a and b do not inlcude ghost cells!
+}
+
 double *alloc1D(int m,int n){
-    int nx=n, ny=m;
+    auto pair = computeBlockSize(m-2, n-2, cb.px, cb.py);
+    int nx=pair.first+2, ny=pair.second+2;
+    printf("[DEBUG] nx=%d ny=%d\n", nx, ny);
     double *E;
     // Ensures that allocatdd memory is aligned on a 16 byte boundary
-    assert(E= (double*) memalign(16, sizeof(double)*nx*ny) );
+    assert(E= (double*) memalign(16, sizeof(double)*nx*ny) ); // TODO: change alignment size
     return(E);
 }
 
