@@ -20,9 +20,12 @@ using namespace std;
 extern control_block cb;
 
 void printMat(const char mesg[], double *E, int m, int n);
-pair<pair<int, int>, pair<int, int> > computeBlockSize(int m, int n, int x, int y);
-
-
+pair<int, int> computeBlockSize(int m, int n, int x, int y);
+pair<int, int> computeBlockSize(int m, int n, int x, int y, int rankx, int ranky);
+int getRank();
+int getNProcs();
+int composeRank(int rankx, int ranky, int x, int y);
+pair<int, int> decomposeRank(int rank, int x, int y);
 
 //
 // Initialization
@@ -33,10 +36,11 @@ pair<pair<int, int>, pair<int, int> > computeBlockSize(int m, int n, int x, int 
 // be mapped to appropriate local indices when parallelizing the code
 //
 void init (double *E,double *E_prev,double *R,int m,int n){
+    int M = m, N = n; // global size
     {
       auto tmp = computeBlockSize(m, n, cb.px, cb.py);
-      m = tmp.first.first;
-      n = tmp.first.second;
+      m = tmp.first;
+      n = tmp.second;
     }
 
     int i;
@@ -83,20 +87,31 @@ int getNProcs() {
     return nprocs;
 }
 
-pair<pair<int, int>, pair<int, int>> computeBlockSize(int m, int n, int x, int y) {
-  int rank = getRank(), rankx = rank/y, ranky = rank%y;
+pair<int, int> computeBlockSize(int m, int n, int x, int y) {
+  auto temp = decomposeRank(getRank(), x, y);
+  int rankx = temp.first;
+  int ranky = temp.second;
+  return computeBlockSize(m, n, x, y, rankx, ranky);
+}
+
+pair<int, int> computeBlockSize(int m, int n, int x, int y, int rankx, int ranky) {
   int a = m/x + (rankx < m%x);
   int b = n/y + (ranky < n%y);
-  return make_pair(make_pair(a, b), make_pair(rankx, ranky)); // a and b do not inlcude ghost cells!
+  return make_pair(a, b); // a and b do not inlcude ghost cells!
 }
 
 int composeRank(int rankx, int ranky, int x, int y) {
   return rankx * y + ranky;
 }
 
+pair<int, int> decomposeRank(int rank, int x, int y) {
+  return make_pair(rank / y, rank % y);
+}
+
 double *alloc1D(int m,int n){
     auto pair = computeBlockSize(m-2, n-2, cb.px, cb.py);
-    int nx=pair.first.first+2, ny=pair.first.second+2;
+    int nx = pair.first + 2;
+    int ny = pair.second + 2;
     double *E;
     // Ensures that allocatdd memory is aligned on a 16 byte boundary
     assert(E= (double*) memalign(16, sizeof(double)*nx*ny) ); // TODO: change alignment size

@@ -31,10 +31,12 @@ void repNorms(double l2norm, double mx, double dt, int m,int n, int niter, int s
 void stats(double *E, int m, int n, double *_mx, double *sumSq);
 void printMat2(const char mesg[], double *E, int m, int n);
 
+pair<int, int> computeBlockSize(int m, int n, int x, int y);
+pair<int, int> computeBlockSize(int m, int n, int x, int y, int rankx, int ranky);
 int getRank();
 int getNProcs();
-pair<pair<int, int>, pair<int, int>> computeBlockSize(int m, int n, int x, int y);
 int composeRank(int rankx, int ranky, int x, int y);
+pair<int, int> decomposeRank(int rank, int x, int y);
 
 extern control_block cb;
 
@@ -65,9 +67,9 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
  double *E_prev_tmp = *_E_prev;
  double mx, sumSq;
  int niter;
-  const auto blockSize = computeBlockSize(cb.m, cb.n, cb.px, cb.py).first;
-  const auto blockRank = computeBlockSize(cb.m, cb.n, cb.px, cb.py).second;
-  const int rankIndex = getRank();
+  const auto blockSize = computeBlockSize(cb.m, cb.n, cb.px, cb.py);
+  const int rank = getRank();
+  const auto blockRank = decomposeRank(rank, cb.px, cb.py);
   const int rankx = blockRank.first, ranky = blockRank.second;
  const int m = blockSize.first, n = blockSize.second;
  int innerBlockRowStartIndex = (n+2)+1;
