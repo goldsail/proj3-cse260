@@ -26,6 +26,8 @@ using namespace std;
 #include <mpi.h>
 extern control_block cb;
 
+// #define DISABLE_COMMUNICATION
+
 void repNorms(double l2norm, double mx, double dt, int m,int n, int niter, int stats_freq);
 void stats(double *E, int m, int n, double *_mx, double *sumSq);
 void printMat2(const char mesg[], double *E, int m, int n);
@@ -40,6 +42,10 @@ int composeRank(int rankx, int ranky, int x, int y);
 pair<int, int> decomposeRank(int rank, int x, int y);
 
 void gather(int m, int n, double &sumSq, Plotter *plotter, double &L2, double &Linf) {
+#ifdef DISABLE_COMMUNICATION
+  return;
+#endif
+
   // printf("[INFO] gather result at node %d\n", getRank());
   int M = cb.m;
   int N = cb.n;
@@ -150,6 +156,11 @@ void init (double *E,double *E_prev,double *R,int m,int n){
       m = tmp.first; // local size
       n = tmp.second; // local size
     }
+
+#ifdef DISABLE_COMMUNICATION
+    fill(E_prev, R, m, n);
+    return;
+#endif
 
     // node 0 initializes and sends to all nodes including itself
     if (getRank() == 0) {

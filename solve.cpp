@@ -86,7 +86,7 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
   MPI_Type_commit(&bufferTypeRow);
   MPI_Type_commit(&bufferTypeColumn);
 
-
+// #define DISABLE_COMMUNICATION
 
  // We continue to sweep over the mesh until the simulation has reached
  // the desired number of iterations
@@ -124,6 +124,7 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
       }
     } else {
       // communicate
+#ifndef DISABLE_COMMUNICATION
       MPI_Isend(&E[1 + (n+2)*1], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Isend(&E_prev[1 + (n+2)*1], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
@@ -136,6 +137,7 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
       reqs.push_back(req);
       MPI_Irecv(&R[1 + (n+2)*0], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
+#endif
     }
 
 
@@ -147,6 +149,7 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
       }
     } else {
       // communicate
+#ifndef DISABLE_COMMUNICATION
       MPI_Isend(&E[n + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Isend(&E_prev[n + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
@@ -159,6 +162,7 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
       reqs.push_back(req);
       MPI_Irecv(&R[n+1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
+#endif
     }
 
 
@@ -169,6 +173,7 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
       }
     } else {
       // communicate
+#ifndef DISABLE_COMMUNICATION
       MPI_Isend(&E[1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Isend(&E_prev[1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
@@ -181,6 +186,7 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
       reqs.push_back(req);
       MPI_Irecv(&R[0 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
+#endif
     }
 
 
@@ -191,6 +197,7 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
       }
     } else {
       // communicate
+#ifndef DISABLE_COMMUNICATION
       MPI_Isend(&E[1 + (n+2)*m], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Isend(&E_prev[1 + (n+2)*m], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
@@ -203,10 +210,13 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
       reqs.push_back(req);
       MPI_Irecv(&R[1 + (n+2)*(m+1)], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
+#endif
     }
 
+#ifndef DISABLE_COMMUNICATION
     vector<MPI_Status> status(reqs.size());
     MPI_Waitall(reqs.size(), reqs.data(), status.data());
+#endif
     MPI_Barrier(MPI_COMM_WORLD);
 
 
