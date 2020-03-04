@@ -1,9 +1,9 @@
-/* 
+/*
  * Solves the Aliev-Panfilov model  using an explicit numerical scheme.
  * Based on code orginally provided by Xing Cai, Simula Research Laboratory
- * 
+ *
  * Modified and  restructured by Scott B. Baden, UCSD
- * 
+ *
  */
 
 #include <assert.h>
@@ -11,17 +11,34 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <vector>
 #include <math.h>
 #include "time.h"
 #include "apf.h"
 #include "Plotting.h"
 #include "cblock.h"
 #include <emmintrin.h>
+
+#include <mpi.h>
+
 using namespace std;
+
+#define TAG_COMP_E (0)
+#define TAG_COMP_EP (1)
+#define TAG_COMP_R (2)
 
 void repNorms(double l2norm, double mx, double dt, int m,int n, int niter, int stats_freq);
 void stats(double *E, int m, int n, double *_mx, double *sumSq);
 void printMat2(const char mesg[], double *E, int m, int n);
+
+pair<int, int> computeBlockSize(int m, int n, int x, int y);
+pair<int, int> computeBlockSize(int m, int n, int x, int y, int rankx, int ranky);
+int getRank();
+int getNProcs();
+int composeRank(int rankx, int ranky, int x, int y);
+pair<int, int> decomposeRank(int rank, int x, int y);
+
+void gather(int m, int n, double &sumSq, Plotter *plotter, double &L2, double &Linf);
 
 extern control_block cb;
 
@@ -29,7 +46,7 @@ extern control_block cb;
 // If you intend to vectorize using SSE instructions, you must
 // disable the compiler's auto-vectorizer
 // __attribute__((optimize("no-tree-vectorize")))
-// #endif 
+// #endif
 
 // The L2 norm of an array is computed by taking sum of the squares
 // of each element, normalizing by dividing by the number of points
@@ -52,15 +69,29 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
  double *E_prev_tmp = *_E_prev;
  double mx, sumSq;
  int niter;
- int m = cb.m, n=cb.n;
+  const auto blockSize = computeBlockSize(cb.m, cb.n, cb.px, cb.py);
+  const int rank = getRank();
+  const auto blockRank = decomposeRank(rank, cb.px, cb.py);
+  const int rankx = blockRank.first, ranky = blockRank.second;
+ const int m = blockSize.first, n = blockSize.second;
  int innerBlockRowStartIndex = (n+2)+1;
  int innerBlockRowEndIndex = (((m+2)*(n+2) - 1) - (n)) - (n+2);
 
+  MPI_Request req;
+
+  MPI_Datatype bufferTypeRow;
+  MPI_Datatype bufferTypeColumn;
+  MPI_Type_vector(n, 1, 1, MPI_DOUBLE, &bufferTypeRow); // row buffer
+  MPI_Type_vector(m, 1, n + 2, MPI_DOUBLE, &bufferTypeColumn); // column buffer
+  MPI_Type_commit(&bufferTypeRow);
+  MPI_Type_commit(&bufferTypeColumn);
+
+// #define DISABLE_COMMUNICATION
 
  // We continue to sweep over the mesh until the simulation has reached
  // the desired number of iterations
   for (niter = 0; niter < cb.niters; niter++){
-  
+
       if  (cb.debug && (niter==0)){
 	  stats(E_prev,m,n,&mx,&sumSq);
           double l2norm = L2Norm(sumSq);
@@ -69,7 +100,7 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
 	      plotter->updatePlot(E,  -1, m+1, n+1);
       }
 
-   /* 
+   /*
     * Copy data from boundary of the computational box to the
     * padding region, set up for differencing computational box's boundary
     *
@@ -81,29 +112,113 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
     * which increase the running time of solve()
     *
     */
-    
+
     // 4 FOR LOOPS set up the padding needed for the boundary conditions
     int i,j;
+    vector<MPI_Request> reqs;
 
     // Fills in the TOP Ghost Cells
-    for (i = 0; i < (n+2); i++) {
+    if (rankx == 0) {
+      for (i = 0; i < (n+2); i++) {
         E_prev[i] = E_prev[i + (n+2)*2];
+      }
+    } else {
+      // communicate
+#ifndef DISABLE_COMMUNICATION
+      MPI_Isend(&E[1 + (n+2)*1], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Isend(&E_prev[1 + (n+2)*1], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Isend(&R[1 + (n+2)*1], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Irecv(&E[1 + (n+2)*0], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Irecv(&E_prev[1 + (n+2)*0], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Irecv(&R[1 + (n+2)*0], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+#endif
     }
+
+
 
     // Fills in the RIGHT Ghost Cells
-    for (i = (n+1); i < (m+2)*(n+2); i+=(n+2)) {
+    if (ranky + 1 == cb.py) {
+      for (i = (n+1); i < (m+2)*(n+2); i+=(n+2)) {
         E_prev[i] = E_prev[i-2];
+      }
+    } else {
+      // communicate
+#ifndef DISABLE_COMMUNICATION
+      MPI_Isend(&E[n + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Isend(&E_prev[n + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Isend(&R[n + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Irecv(&E[n+1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Irecv(&E_prev[n+1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Irecv(&R[n+1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+#endif
     }
+
 
     // Fills in the LEFT Ghost Cells
-    for (i = 0; i < (m+2)*(n+2); i+=(n+2)) {
+    if (ranky == 0) {
+      for (i = 0; i < (m+2)*(n+2); i+=(n+2)) {
         E_prev[i] = E_prev[i+2];
-    }	
+      }
+    } else {
+      // communicate
+#ifndef DISABLE_COMMUNICATION
+      MPI_Isend(&E[1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Isend(&E_prev[1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Isend(&R[1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Irecv(&E[0 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Irecv(&E_prev[0 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Irecv(&R[0 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+#endif
+    }
+
 
     // Fills in the BOTTOM Ghost Cells
-    for (i = ((m+2)*(n+2)-(n+2)); i < (m+2)*(n+2); i++) {
+    if (rankx + 1 == cb.px) {
+      for (i = ((m+2)*(n+2)-(n+2)); i < (m+2)*(n+2); i++) {
         E_prev[i] = E_prev[i - (n+2)*2];
+      }
+    } else {
+      // communicate
+#ifndef DISABLE_COMMUNICATION
+      MPI_Isend(&E[1 + (n+2)*m], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Isend(&E_prev[1 + (n+2)*m], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Isend(&R[1 + (n+2)*m], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Irecv(&E[1 + (n+2)*(m+1)], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Irecv(&E_prev[1 + (n+2)*(m+1)], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+      MPI_Irecv(&R[1 + (n+2)*(m+1)], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
+      reqs.push_back(req);
+#endif
     }
+
+#ifndef DISABLE_COMMUNICATION
+    vector<MPI_Status> status(reqs.size());
+    MPI_Waitall(reqs.size(), reqs.data(), status.data());
+#endif
+    MPI_Barrier(MPI_COMM_WORLD);
+
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -131,7 +246,7 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
             }
     }
 
-    /* 
+    /*
      * Solve the ODE, advancing excitation and recovery variables
      *     to the next timtestep
      */
@@ -167,10 +282,9 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
 
  } //end of 'niter' loop at the beginning
 
-  //  printMat2("Rank 0 Matrix E_prev", E_prev, m,n);  // return the L2 and infinity norms via in-out parameters
-
+  // gather information back
   stats(E_prev,m,n,&Linf,&sumSq);
-  L2 = L2Norm(sumSq);
+  gather(m, n, sumSq, plotter, L2, Linf);
 
   // Swap pointers so we can re-use the arrays
   *_E = E;
