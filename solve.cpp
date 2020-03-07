@@ -17,6 +17,8 @@
 #include "apf.h"
 #include "Plotting.h"
 #include "cblock.h"
+#include <string.h>
+#include <malloc.h>
 #include <emmintrin.h>
 
 #include <mpi.h>
@@ -62,7 +64,7 @@ static inline void copy_blk_pad (double* dst, int dh, int dw, int dlda, double* 
 }
 
 // do_block_0_fused(blk_E_prev_tmp, blk_R_tmp, blk_E_tmp, BLOCK_SIZE_0, BLOCK_SIZE_0, BLOCK_SIZE_0);
-static inline void do_block_0_fused(double *E_prev, double *R, double *E, 
+static inline void do_block_0_fused(double *E_prev, double *R, double *E,
                                     int m, int n, int lda, double alpha, double dt) {
   const int innerBlockRowStartIndex = (n+2)+1;
   const int innerBlockRowEndIndex = (((m+2)*(n+2) - 1) - (n)) - (n+2);
