@@ -194,7 +194,9 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
 
 //////////////////////////////////////////////////////////////////////////////
 
-#define FUSED 1
+#ifndef FUSED
+    #define FUSED 1
+#endif
 
 #ifdef FUSED
     // Solve for the excitation, a PDE
