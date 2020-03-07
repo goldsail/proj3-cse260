@@ -49,10 +49,7 @@ static double** mem_E_prev_tmp;
 static double** mem_R_tmp;
 
 #define ALIGNMENT 256
-#define BLOCKING
-#ifdef BLOCKING
-    #define BLOCK_SIZE_0 50
-#endif
+#define BLOCK_SIZE_0 50
 
 static inline void copy_blk_pad (double* dst, int dh, int dw, int dlda, double* src, int sh, int sw, int slda) {
   // if (dw>sw || dh>sh) memset(dst, 0, dh*dw*sizeof(double));
@@ -258,13 +255,13 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
 
     for (int i=1; i<=m; i+=BLOCK_SIZE_0) {
       for (int j=1; j<=n; j+=BLOCK_SIZE_0) {
-        const int M = min (BLOCK_SIZE_0+2, m+2-i);
-        const int N = min (BLOCK_SIZE_0+2, n+2-j);
+        const int M = min (BLOCK_SIZE_0+2, m+3-i);
+        const int N = min (BLOCK_SIZE_0+2, n+3-j);
 
         copy_blk_pad(blk_E_prev_tmp, BLOCK_SIZE_0+2, BLOCK_SIZE_0+2, BLOCK_SIZE_0+2, E_prev_tmp + (i-1)*lda + j-1, M, N, lda);
         copy_blk_pad(blk_R_tmp, BLOCK_SIZE_0+2, BLOCK_SIZE_0+2, BLOCK_SIZE_0+2, R_tmp + (i-1)*lda + j-1, M, N, lda);
 
-        do_block_0_fused(blk_E_prev_tmp, blk_R_tmp, blk_E_tmp, BLOCK_SIZE_0, BLOCK_SIZE_0, BLOCK_SIZE_0, alpha, dt);
+        do_block_0_fused(blk_E_prev_tmp, blk_R_tmp, blk_E_tmp, BLOCK_SIZE_0, BLOCK_SIZE_0, BLOCK_SIZE_0+2, alpha, dt);
 
         copy_blk_pad(E_tmp+i*lda+j, M-2, N-2, lda, blk_E_tmp+BLOCK_SIZE_0+1, M-2, N-2, BLOCK_SIZE_0+2);
         copy_blk_pad(R_tmp+i*lda+j, M-2, N-2, lda, blk_R_tmp+BLOCK_SIZE_0+1, M-2, N-2, BLOCK_SIZE_0+2);
