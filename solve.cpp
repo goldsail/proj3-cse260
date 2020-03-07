@@ -73,9 +73,9 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
   const int rank = getRank();
   const auto blockRank = decomposeRank(rank, cb.px, cb.py);
   const int rankx = blockRank.first, ranky = blockRank.second;
- const int m = blockSize.first, n = blockSize.second;
- int innerBlockRowStartIndex = (n+2)+1;
- int innerBlockRowEndIndex = (((m+2)*(n+2) - 1) - (n)) - (n+2);
+  const int m = blockSize.first, n = blockSize.second;
+  const int innerBlockRowStartIndex = (n+2)+1;
+  const int innerBlockRowEndIndex = (((m+2)*(n+2) - 1) - (n)) - (n+2);
 
   MPI_Request req;
 
@@ -85,8 +85,6 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
   MPI_Type_vector(m, 1, n + 2, MPI_DOUBLE, &bufferTypeColumn); // column buffer
   MPI_Type_commit(&bufferTypeRow);
   MPI_Type_commit(&bufferTypeColumn);
-
-// #define DISABLE_COMMUNICATION
 
  // We continue to sweep over the mesh until the simulation has reached
  // the desired number of iterations
@@ -118,105 +116,79 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
     vector<MPI_Request> reqs;
 
     // Fills in the TOP Ghost Cells
-    if (rankx == 0) {
+    if (cb.noComm || rankx == 0) {
       for (i = 0; i < (n+2); i++) {
         E_prev[i] = E_prev[i + (n+2)*2];
       }
-    } else {
+    } else if (!cb.noComm) {
       // communicate
-#ifndef DISABLE_COMMUNICATION
-      MPI_Isend(&E[1 + (n+2)*1], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
       MPI_Isend(&E_prev[1 + (n+2)*1], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Isend(&R[1 + (n+2)*1], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
-      MPI_Irecv(&E[1 + (n+2)*0], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Irecv(&E_prev[1 + (n+2)*0], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Irecv(&R[1 + (n+2)*0], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
-#endif
     }
 
-
-
     // Fills in the RIGHT Ghost Cells
-    if (ranky + 1 == cb.py) {
+    if (cb.noComm || ranky + 1 == cb.py) {
       for (i = (n+1); i < (m+2)*(n+2); i+=(n+2)) {
         E_prev[i] = E_prev[i-2];
       }
-    } else {
+    } else if (!cb.noComm) {
       // communicate
-#ifndef DISABLE_COMMUNICATION
-      MPI_Isend(&E[n + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
       MPI_Isend(&E_prev[n + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Isend(&R[n + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
-      MPI_Irecv(&E[n+1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Irecv(&E_prev[n+1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Irecv(&R[n+1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
-#endif
     }
 
 
     // Fills in the LEFT Ghost Cells
-    if (ranky == 0) {
+    if (cb.noComm || ranky == 0) {
       for (i = 0; i < (m+2)*(n+2); i+=(n+2)) {
         E_prev[i] = E_prev[i+2];
       }
-    } else {
+    } else if (!cb.noComm) {
       // communicate
-#ifndef DISABLE_COMMUNICATION
-      MPI_Isend(&E[1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
       MPI_Isend(&E_prev[1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Isend(&R[1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
-      MPI_Irecv(&E[0 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Irecv(&E_prev[0 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Irecv(&R[0 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
-#endif
     }
 
 
     // Fills in the BOTTOM Ghost Cells
-    if (rankx + 1 == cb.px) {
+    if (cb.noComm || rankx + 1 == cb.px) {
       for (i = ((m+2)*(n+2)-(n+2)); i < (m+2)*(n+2); i++) {
         E_prev[i] = E_prev[i - (n+2)*2];
       }
-    } else {
+    } else if (!cb.noComm) {
       // communicate
-#ifndef DISABLE_COMMUNICATION
-      MPI_Isend(&E[1 + (n+2)*m], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
       MPI_Isend(&E_prev[1 + (n+2)*m], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Isend(&R[1 + (n+2)*m], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
-      MPI_Irecv(&E[1 + (n+2)*(m+1)], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Irecv(&E_prev[1 + (n+2)*(m+1)], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Irecv(&R[1 + (n+2)*(m+1)], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
-#endif
     }
 
-#ifndef DISABLE_COMMUNICATION
-    vector<MPI_Status> status(reqs.size());
-    MPI_Waitall(reqs.size(), reqs.data(), status.data());
-#endif
+    if (!cb.noComm) {
+      vector<MPI_Status> status(reqs.size());
+      MPI_Waitall(reqs.size(), reqs.data(), status.data());
+    }
     MPI_Barrier(MPI_COMM_WORLD);
 
 

@@ -1,0 +1,487 @@
+
+ *** Current working directory
+/home/f1jin/pa3
+
+ *** Compiler
+mpicc for MVAPICH2 version 2.3.2
+icc version 18.0.1 (gcc version 4.8.5 compatibility)
+
+ *** Environment
+SLURM_CHECKPOINT_IMAGE_DIR=/home/f1jin/pa3
+SLURM_NODELIST=comet-07-[05,10]
+MKLROOT=/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl
+SLURM_JOB_NAME=pa3
+PDSHROOT=/opt/pdsh
+MANPATH=/opt/intel/2018.1.163/documentation_2018/en/man/common:/usr/share/man:/usr/local/share/man
+XDG_SESSION_ID=13707237
+SLURMD_NODENAME=comet-07-05
+SLURM_TOPOLOGY_ADDR=CORE.R24.R07.comet-07-05
+SLURM_NTASKS_PER_NODE=24
+HOSTNAME=comet-07-05
+SLURM_PRIO_PROCESS=0
+SLURM_NODE_ALIASES=(null)
+INTEL_LICENSE_FILE=/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/licenses:/opt/intel/licenses:/root/intel/licenses
+IPPROOT=/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/ipp
+SHELL=/bin/bash
+TERM=xterm-256color
+L_MKL_TEMP=M_VERS
+HISTSIZE=1000
+TMPDIR=/tmp
+SLURM_TOPOLOGY_ADDR_PATTERN=switch.switch.switch.node
+SSH_CLIENT=137.110.33.205 54566 22
+GDBSERVER_MIC=/opt/intel/2018.1.163/debugger_YEAR/gdb/targets/mic/bin/gdbserver
+LIBRARY_PATH=/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin:/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/ipp/../compiler/lib/intel64:/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/ipp/lib/intel64:/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64:/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4
+FPATH=/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/include
+QTDIR=/usr/lib64/qt-3.3
+QTINC=/usr/lib64/qt-3.3/include
+SSH_TTY=/dev/pts/175
+ROCKSROOT=/opt/rocks/share/devel
+MIC_LD_LIBRARY_PATH=/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/compiler/lib/mic:/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/lib/mic:/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/tbb/lib/mic
+ANT_HOME=/opt/rocks
+QT_GRAPHICSSYSTEM_CHECKED=1
+SLURM_NNODES=2
+USER=f1jin
+LS_COLORS=rs=0:di=38;5;27:ln=38;5;51:mh=44;38;5;15:pi=40;38;5;11:so=38;5;13:do=38;5;5:bd=48;5;232;38;5;11:cd=48;5;232;38;5;3:or=48;5;232;38;5;9:mi=05;48;5;232;38;5;15:su=48;5;196;38;5;15:sg=48;5;11;38;5;16:ca=48;5;196;38;5;226:tw=48;5;10;38;5;16:ow=48;5;10;38;5;21:st=48;5;21;38;5;15:ex=38;5;34:*.tar=38;5;9:*.tgz=38;5;9:*.arc=38;5;9:*.arj=38;5;9:*.taz=38;5;9:*.lha=38;5;9:*.lz4=38;5;9:*.lzh=38;5;9:*.lzma=38;5;9:*.tlz=38;5;9:*.txz=38;5;9:*.tzo=38;5;9:*.t7z=38;5;9:*.zip=38;5;9:*.z=38;5;9:*.Z=38;5;9:*.dz=38;5;9:*.gz=38;5;9:*.lrz=38;5;9:*.lz=38;5;9:*.lzo=38;5;9:*.xz=38;5;9:*.bz2=38;5;9:*.bz=38;5;9:*.tbz=38;5;9:*.tbz2=38;5;9:*.tz=38;5;9:*.deb=38;5;9:*.rpm=38;5;9:*.jar=38;5;9:*.war=38;5;9:*.ear=38;5;9:*.sar=38;5;9:*.rar=38;5;9:*.alz=38;5;9:*.ace=38;5;9:*.zoo=38;5;9:*.cpio=38;5;9:*.7z=38;5;9:*.rz=38;5;9:*.cab=38;5;9:*.jpg=38;5;13:*.jpeg=38;5;13:*.gif=38;5;13:*.bmp=38;5;13:*.pbm=38;5;13:*.pgm=38;5;13:*.ppm=38;5;13:*.tga=38;5;13:*.xbm=38;5;13:*.xpm=38;5;13:*.tif=38;5;13:*.tiff=38;5;13:*.png=38;5;13:*.svg=38;5;13:*.svgz=38;5;13:*.mng=38;5;13:*.pcx=38;5;13:*.mov=38;5;13:*.mpg=38;5;13:*.mpeg=38;5;13:*.m2v=38;5;13:*.mkv=38;5;13:*.webm=38;5;13:*.ogm=38;5;13:*.mp4=38;5;13:*.m4v=38;5;13:*.mp4v=38;5;13:*.vob=38;5;13:*.qt=38;5;13:*.nuv=38;5;13:*.wmv=38;5;13:*.asf=38;5;13:*.rm=38;5;13:*.rmvb=38;5;13:*.flc=38;5;13:*.avi=38;5;13:*.fli=38;5;13:*.flv=38;5;13:*.gl=38;5;13:*.dl=38;5;13:*.xcf=38;5;13:*.xwd=38;5;13:*.yuv=38;5;13:*.cgm=38;5;13:*.emf=38;5;13:*.axv=38;5;13:*.anx=38;5;13:*.ogv=38;5;13:*.ogx=38;5;13:*.aac=38;5;45:*.au=38;5;45:*.flac=38;5;45:*.mid=38;5;45:*.midi=38;5;45:*.mka=38;5;45:*.mp3=38;5;45:*.mpc=38;5;45:*.ogg=38;5;45:*.ra=38;5;45:*.wav=38;5;45:*.axa=38;5;45:*.oga=38;5;45:*.spx=38;5;45:*.xspf=38;5;45:
+LD_LIBRARY_PATH=/opt/mvapich2/intel/ib/lib:/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin:/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/ipp/../compiler/lib/intel64:/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/ipp/lib/intel64:/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/lib/intel64:/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/tbb/lib/intel64/gcc4.4
+ROCKS_ROOT=/opt/rocks
+MIC_LIBRARY_PATH=/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/compiler/lib/mic:/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/tbb/lib/mic
+SLURM_JOBID=31965387
+CPATH=/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/ipp/include:/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/include:/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/tbb/include
+SLURM_NTASKS=48
+NLSPATH=/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/compiler/lib/intel64_lin/locale/%l_%t/%N:/opt/intel/2018.1.163/debugger_YEAR/gdb/intel64/share/locale/%l_%t/%N
+SLURM_TASKS_PER_NODE=24(x2)
+PATH=/opt/mvapich2/intel/ib/bin:/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/bin/intel64:/usr/lib64/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/opt/sdsc/bin:/opt/sdsc/sbin:/opt/ibutils/bin:/opt/pdsh/bin:/opt/rocks/bin:/opt/rocks/sbin:/home/f1jin/bin
+MAIL=/var/spool/mail/f1jin
+MV2_ALLTOALL_TUNING=2
+SLURM_JOB_ID=31965387
+SDSCDEVEL=/opt/sdsc/devel
+TBBROOT=/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/tbb
+SLURM_JOB_USER=f1jin
+PWD=/home/f1jin/pa3
+CUDA_VISIBLE_DEVICES=NoDevFiles
+JAVA_HOME=/usr/java/latest
+_LMFILES_=/opt/modulefiles/compilers/intel/2018.1.163:/opt/modulefiles/mpi/mvapich2_ib/2.3.2
+LANG=en_US.UTF-8
+GDB_CROSS=/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/bin/intel64/gdb-mic
+MODULEPATH=/opt/modulefiles/mpi/.intel:/opt/modulefiles/mpi:/opt/modulefiles/compilers:/opt/modulefiles/applications:/usr/share/Modules/modulefiles:/etc/modulefiles
+SLURM_JOB_UID=525935
+LOADEDMODULES=intel/2018.1.163:mvapich2_ib/2.3.2
+SLURM_NODEID=0
+SLURM_SUBMIT_DIR=/home/f1jin/pa3
+SLURM_TASK_PID=377
+SLURM_NPROCS=48
+SLURM_CPUS_ON_NODE=24
+LM_LICENSE_FILE=/opt/flexlm/license/license.dat
+SLURM_PROCID=0
+ENVIRONMENT=BATCH
+KRB5CCNAME=KEYRING:session:525935
+HISTCONTROL=ignoredups
+MPM_LAUNCHER=/opt/intel/2018.1.163/debugger_YEAR/mpm/intel64_igfx/bin/start_mpm.sh
+SLURM_JOB_NODELIST=comet-07-[05,10]
+INTEL_PYTHONHOME=/opt/intel/2018.1.163/debugger_YEAR/gdb/intel64/share/gdb/python
+HOME=/home/f1jin
+SHLVL=2
+SLURM_LOCALID=0
+SLURM_JOB_CPUS_PER_NODE=24(x2)
+SLURM_CLUSTER_NAME=comet
+ROLLSROOT=/opt/rocks/share/devel/src/roll
+SLURM_GTIDS=0
+SLURM_SUBMIT_HOST=comet-ln3.sdsc.edu
+MPIHOME=/opt/mvapich2/intel/ib
+SLURM_JOB_PARTITION=compute
+SDSCHOME=/opt/sdsc
+LOGNAME=f1jin
+PYTHONPATH=/opt/sdsc/lib
+CVS_RSH=ssh
+QTLIB=/usr/lib64/qt-3.3/lib
+GPU_DEVICE_ORDINAL=NoDevFiles
+SSH_CONNECTION=137.110.33.205 54566 198.202.113.252 22
+XDG_DATA_DIRS=/home/f1jin/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/usr/local/share:/usr/share
+SLURM_JOB_NUM_NODES=2
+MODULESHOME=/usr/share/Modules
+LESSOPEN=||/usr/bin/lesspipe.sh %s
+MKL_ROOT=/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl
+INFOPATH=/opt/intel/2018.1.163/documentation_YEAR/en/debugger/gdb-ia/info/:/opt/intel/2018.1.163/documentation_YEAR/en/debugger/gdb-mic/info
+XDG_RUNTIME_DIR=/run/user/525935
+INCLUDE=/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux/mkl/include
+INTELHOME=/opt/intel/2018.1.163/compilers_and_libraries_2018.1.163/linux
+PUB=/oasis/projects/nsf/csd562/bwchin/cse260-wi20
+SLURM_MEM_PER_NODE=122880
+BASH_FUNC_module()=() {  eval `/usr/bin/modulecmd bash $*`
+}
+_=/bin/printenv
+
+>>> Job Starts
+Sat Mar  7 09:37:05 PST 2020
+
+[Simulation begins] Sat Mar  7 09:37:08 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 1 x 48
+
+Compiled with MPI ENABLED
+
+[Simulation completes] Sat Mar  7 09:37:09 2020
+
+End at iteration 1999
+Max norm: 9.96750e-01, L2norm: 6.48606e-01
+Running Time: 1.00681 sec. [180 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    1 48      Y     2000  1.007 180.2    9.96750e-01 6.48606e-01
+  -----
+
+[Simulation begins] Sat Mar  7 09:37:12 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 1 x 48
+
+Compiled with MPI ENABLED
+Communication shut off
+
+[Simulation completes] Sat Mar  7 09:37:13 2020
+
+End at iteration 1999
+Max norm: 9.96423e-01, L2norm: 1.29617e-01
+Running Time: 0.856627 sec. [212 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    1 48      N     2000  0.8566 211.8    9.96423e-01 1.29617e-01
+  -----
+
+[Simulation begins] Sat Mar  7 09:37:17 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 2 x 24
+
+Compiled with MPI ENABLED
+
+[Simulation completes] Sat Mar  7 09:37:17 2020
+
+End at iteration 1999
+Max norm: 9.96750e-01, L2norm: 6.48606e-01
+Running Time: 0.926975 sec. [196 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    2 24      Y     2000  0.927 195.7    9.96750e-01 6.48606e-01
+  -----
+
+[Simulation begins] Sat Mar  7 09:37:21 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 2 x 24
+
+Compiled with MPI ENABLED
+Communication shut off
+
+[Simulation completes] Sat Mar  7 09:37:22 2020
+
+End at iteration 1999
+Max norm: 9.96734e-01, L2norm: 1.20131e-01
+Running Time: 0.850764 sec. [213 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    2 24      N     2000  0.8508 213.3    9.96734e-01 1.20131e-01
+  -----
+
+[Simulation begins] Sat Mar  7 09:37:25 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 3 x 16
+
+Compiled with MPI ENABLED
+
+[Simulation completes] Sat Mar  7 09:37:26 2020
+
+End at iteration 1999
+Max norm: 9.96750e-01, L2norm: 6.48606e-01
+Running Time: 0.911593 sec. [199 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    3 16      Y     2000  0.9116 199    9.96750e-01 6.48606e-01
+  -----
+
+[Simulation begins] Sat Mar  7 09:37:29 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 3 x 16
+
+Compiled with MPI ENABLED
+Communication shut off
+
+[Simulation completes] Sat Mar  7 09:37:30 2020
+
+End at iteration 1999
+Max norm: 9.96750e-01, L2norm: 1.17166e-01
+Running Time: 0.838061 sec. [216 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    3 16      N     2000  0.8381 216.5    9.96750e-01 1.17166e-01
+  -----
+
+[Simulation begins] Sat Mar  7 09:37:34 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 4 x 12
+
+Compiled with MPI ENABLED
+
+[Simulation completes] Sat Mar  7 09:37:34 2020
+
+End at iteration 1999
+Max norm: 9.96750e-01, L2norm: 6.48606e-01
+Running Time: 0.905384 sec. [200 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    4 12      Y     2000  0.9054 200.4    9.96750e-01 6.48606e-01
+  -----
+
+[Simulation begins] Sat Mar  7 09:37:38 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 4 x 12
+
+Compiled with MPI ENABLED
+Communication shut off
+
+[Simulation completes] Sat Mar  7 09:37:39 2020
+
+End at iteration 1999
+Max norm: 9.96750e-01, L2norm: 1.09876e-01
+Running Time: 0.815157 sec. [223 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    4 12      N     2000  0.8152 222.6    9.96750e-01 1.09876e-01
+  -----
+
+[Simulation begins] Sat Mar  7 09:37:43 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 6 x 8
+
+Compiled with MPI ENABLED
+
+[Simulation completes] Sat Mar  7 09:37:44 2020
+
+End at iteration 1999
+Max norm: 9.96750e-01, L2norm: 6.48606e-01
+Running Time: 0.876995 sec. [207 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    6 8      Y     2000  0.877 206.9    9.96750e-01 6.48606e-01
+  -----
+
+[Simulation begins] Sat Mar  7 09:37:47 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 6 x 8
+
+Compiled with MPI ENABLED
+Communication shut off
+
+[Simulation completes] Sat Mar  7 09:37:48 2020
+
+End at iteration 1999
+Max norm: 9.96750e-01, L2norm: 1.04154e-01
+Running Time: 0.808799 sec. [224 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    6 8      N     2000  0.8088 224.3    9.96750e-01 1.04154e-01
+  -----
+
+[Simulation begins] Sat Mar  7 09:37:52 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 8 x 6
+
+Compiled with MPI ENABLED
+
+[Simulation completes] Sat Mar  7 09:37:52 2020
+
+End at iteration 1999
+Max norm: 9.96750e-01, L2norm: 6.48606e-01
+Running Time: 0.910109 sec. [199 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    8 6      Y     2000  0.9101 199.4    9.96750e-01 6.48606e-01
+  -----
+
+[Simulation begins] Sat Mar  7 09:37:56 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 8 x 6
+
+Compiled with MPI ENABLED
+Communication shut off
+
+[Simulation completes] Sat Mar  7 09:37:56 2020
+
+End at iteration 1999
+Max norm: 9.96750e-01, L2norm: 1.01556e-01
+Running Time: 0.807454 sec. [225 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    8 6      N     2000  0.8075 224.7    9.96750e-01 1.01556e-01
+  -----
+
+[Simulation begins] Sat Mar  7 09:38:00 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 12 x 4
+
+Compiled with MPI ENABLED
+
+[Simulation completes] Sat Mar  7 09:38:01 2020
+
+End at iteration 1999
+Max norm: 9.96750e-01, L2norm: 6.48606e-01
+Running Time: 0.882174 sec. [206 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    12 4      Y     2000  0.8822 205.7    9.96750e-01 6.48606e-01
+  -----
+
+[Simulation begins] Sat Mar  7 09:38:05 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 12 x 4
+
+Compiled with MPI ENABLED
+Communication shut off
+
+[Simulation completes] Sat Mar  7 09:38:06 2020
+
+End at iteration 1999
+Max norm: 9.96750e-01, L2norm: 9.85795e-02
+Running Time: 0.815001 sec. [223 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    12 4      N     2000  0.815 222.6    9.96750e-01 9.85795e-02
+  -----
+
+[Simulation begins] Sat Mar  7 09:38:09 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 16 x 3
+
+Compiled with MPI ENABLED
+
+[Simulation completes] Sat Mar  7 09:38:10 2020
+
+End at iteration 1999
+Max norm: 9.96750e-01, L2norm: 6.48606e-01
+Running Time: 0.869361 sec. [209 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    16 3      Y     2000  0.8694 208.7    9.96750e-01 6.48606e-01
+  -----
+
+[Simulation begins] Sat Mar  7 09:38:13 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 16 x 3
+
+Compiled with MPI ENABLED
+Communication shut off
+
+[Simulation completes] Sat Mar  7 09:38:14 2020
+
+End at iteration 1999
+Max norm: 9.96749e-01, L2norm: 9.74616e-02
+Running Time: 0.804325 sec. [226 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    16 3      N     2000  0.8043 225.6    9.96749e-01 9.74616e-02
+  -----
+
+[Simulation begins] Sat Mar  7 09:38:17 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 24 x 2
+
+Compiled with MPI ENABLED
+
+[Simulation completes] Sat Mar  7 09:38:18 2020
+
+End at iteration 1999
+Max norm: 9.96750e-01, L2norm: 6.48606e-01
+Running Time: 0.872105 sec. [208 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    24 2      Y     2000  0.8721 208    9.96750e-01 6.48606e-01
+  -----
+
+[Simulation begins] Sat Mar  7 09:38:21 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 24 x 2
+
+Compiled with MPI ENABLED
+Communication shut off
+
+[Simulation completes] Sat Mar  7 09:38:22 2020
+
+End at iteration 1999
+Max norm: 9.96676e-01, L2norm: 9.58902e-02
+Running Time: 0.801872 sec. [226 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    24 2      N     2000  0.8019 226.3    9.96676e-01 9.58902e-02
+  -----
+
+[Simulation begins] Sat Mar  7 09:38:25 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 48 x 1
+
+Compiled with MPI ENABLED
+
+[Simulation completes] Sat Mar  7 09:38:26 2020
+
+End at iteration 1999
+Max norm: 9.96750e-01, L2norm: 6.48606e-01
+Running Time: 0.867759 sec. [209 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    48 1      Y     2000  0.8678 209.1    9.96750e-01 6.48606e-01
+  -----
+
+[Simulation begins] Sat Mar  7 09:38:31 2020
+
+dt= 0.00144443, # iters = 2000
+m x n = 1800 x 1800
+processor geometry: 48 x 1
+
+Compiled with MPI ENABLED
+Communication shut off
+
+[Simulation completes] Sat Mar  7 09:38:31 2020
+
+End at iteration 1999
+Max norm: 9.92848e-01, L2norm: 9.51492e-02
+Running Time: 0.810739 sec. [224 GFlop/sec]
+
+   M x N   px x py Comm?   #iter  T_p, Gflops        Linf, L2
+@ 1800 1800    48 1      N     2000  0.8107 223.8    9.92848e-01 9.51492e-02
+  -----
+Sat Mar  7 09:38:32 PST 2020
+>>> Job Ends
