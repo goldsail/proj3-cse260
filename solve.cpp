@@ -49,10 +49,15 @@ static double** mem_E_prev_tmp;
 static double** mem_R_tmp;
 
 #define ALIGNMENT 256
-#define BLOCKING
+#ifndef BLOCKING
+  #define BLOCKING 1
+#endif
+#ifndef FUSED
+  #define FUSED 1
+#endif
 #define BLOCK_SIZE_0 50
 
-#ifdef BLOCKING
+#if BLOCKING
 static inline void copy_blk_pad (double* dst, int dh, int dw, int dlda, double* src, int sh, int sw, int slda) {
   // if (dw>sw || dh>sh) memset(dst, 0, dh*dw*sizeof(double));
   for (int i=0; i<sh; i++) {
@@ -125,7 +130,7 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
   MPI_Type_commit(&bufferTypeRow);
   MPI_Type_commit(&bufferTypeColumn);
 
-#ifdef BLOCKING
+#if BLOCKING
   mem_E_tmp = (double **)malloc(4*sizeof(double*));
   mem_E_prev_tmp = (double **)malloc(4*sizeof(double*));
   mem_R_tmp = (double **)malloc(4*sizeof(double*));
@@ -249,16 +254,14 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
 
 //////////////////////////////////////////////////////////////////////////////
 
-#define FUSED
-
-#ifdef FUSED
+#if FUSED
     // Solve for the excitation, a PDE
     const int lda = n+2;
     double * blk_E_prev_tmp = mem_E_prev_tmp[0];
     double * blk_R_tmp = mem_R_tmp[0];
     double * blk_E_tmp = mem_E_tmp[0];
 
-#ifdef BLOCKING
+#if BLOCKING
     for (int i=1; i<=m; i+=BLOCK_SIZE_0) {
       for (int j=1; j<=n; j+=BLOCK_SIZE_0) {
         const int M = min (BLOCK_SIZE_0+2, m+3-i);
