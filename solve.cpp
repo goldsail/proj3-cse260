@@ -79,12 +79,6 @@ static inline void do_block_0_fused(double *E_prev, double *R, double *E,
           R_tmp[i] += dt*(epsilon+M1* R_tmp[i]/( E_prev_tmp[i]+M2))*(-R_tmp[i]-kk*E_prev_tmp[i]*(E_prev_tmp[i]-b-1));
       }
   }
-
-  // E_tmp[i] = E_prev_tmp[i]+alpha*(E_prev_tmp[i+1]+E_prev_tmp[i-1]-4*E_prev_tmp[i]+E_prev_tmp[i+(n+2)]+E_prev_tmp[i-(n+2)]);
-
-
-  // E_tmp[i] += -dt*(kk*E_prev_tmp[i]*(E_prev_tmp[i]-a)*(E_prev_tmp[i]-1)+E_prev_tmp[i]*R_tmp[i]);
-  // R_tmp[i] += dt*(epsilon+M1* R_tmp[i]/( E_prev_tmp[i]+M2))*(-R_tmp[i]-kk*E_prev_tmp[i]*(E_prev_tmp[i]-b-1));
 }
 
 // #ifdef SSE_VEC
@@ -277,17 +271,6 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
         copy_blk_pad(E_tmp+i*lda+j, M-2, N-2, lda, blk_E_tmp+BLOCK_SIZE_0+1, M-2, N-2, BLOCK_SIZE_0+2);
         copy_blk_pad(R_tmp+i*lda+j, M-2, N-2, lda, blk_R_tmp+BLOCK_SIZE_0+1, M-2, N-2, BLOCK_SIZE_0+2);
       }
-    }
-
-    for(j = innerBlockRowStartIndex; j <= innerBlockRowEndIndex; j+=(n+2)) {
-        E_tmp = E + j;
-        E_prev_tmp = E_prev + j;
-        R_tmp = R + j;
-        for(i = 0; i < n; i++) {
-            E_tmp[i] = E_prev_tmp[i]+alpha*(E_prev_tmp[i+1]+E_prev_tmp[i-1]-4*E_prev_tmp[i]+E_prev_tmp[i+(n+2)]+E_prev_tmp[i-(n+2)]);
-            E_tmp[i] += -dt*(kk*E_prev_tmp[i]*(E_prev_tmp[i]-a)*(E_prev_tmp[i]-1)+E_prev_tmp[i]*R_tmp[i]);
-            R_tmp[i] += dt*(epsilon+M1* R_tmp[i]/( E_prev_tmp[i]+M2))*(-R_tmp[i]-kk*E_prev_tmp[i]*(E_prev_tmp[i]-b-1));
-        }
     }
 #else
     // Solve for the excitation, a PDE
