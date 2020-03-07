@@ -42,6 +42,49 @@ void gather(int m, int n, double &sumSq, Plotter *plotter, double &L2, double &L
 
 extern control_block cb;
 
+static double** mem_E_tmp;
+static double** mem_E_prev_tmp;
+static double** mem_R_tmp;
+
+#define ALIGNMENT 256
+#define BLOCKING
+#ifdef BLOCKING
+    #define BLOCK_SIZE_0 50
+#endif
+
+static inline void copy_blk_pad (double* dst, int dh, int dw, int dlda, double* src, int sh, int sw, int slda) {
+  // if (dw>sw || dh>sh) memset(dst, 0, dh*dw*sizeof(double));
+  for (int i=0; i<sh; i++) {
+    memcpy(dst+i*dlda, src+i*slda, sw*sizeof(double));
+    if (dw>sw) memset(dst+i*dlda+sw, 0, (dw-sw)*sizeof(double));
+  }
+  if (dh > sh) memset(dst+sh*dlda, 0, (dh-sh)*dw*sizeof(double));
+}
+
+// do_block_0_fused(blk_E_prev_tmp, blk_R_tmp, blk_E_tmp, BLOCK_SIZE_0, BLOCK_SIZE_0, BLOCK_SIZE_0);
+static inline void do_block_0_fused(double *E_prev, double *R, double *E, 
+                                    int m, int n, int lda, double alpha, double dt) {
+  const int innerBlockRowStartIndex = (n+2)+1;
+  const int innerBlockRowEndIndex = (((m+2)*(n+2) - 1) - (n)) - (n+2);
+
+  for(int j = innerBlockRowStartIndex; j <= innerBlockRowEndIndex; j+=(n+2)) {
+      double *E_tmp = E + j;
+      double *E_prev_tmp = E_prev + j;
+      double *R_tmp = R + j;
+      for(int i = 0; i < n; i++) {
+          E_tmp[i] = E_prev_tmp[i]+alpha*(E_prev_tmp[i+1]+E_prev_tmp[i-1]-4*E_prev_tmp[i]+E_prev_tmp[i+(n+2)]+E_prev_tmp[i-(n+2)]);
+          E_tmp[i] += -dt*(kk*E_prev_tmp[i]*(E_prev_tmp[i]-a)*(E_prev_tmp[i]-1)+E_prev_tmp[i]*R_tmp[i]);
+          R_tmp[i] += dt*(epsilon+M1* R_tmp[i]/( E_prev_tmp[i]+M2))*(-R_tmp[i]-kk*E_prev_tmp[i]*(E_prev_tmp[i]-b-1));
+      }
+  }
+
+  // E_tmp[i] = E_prev_tmp[i]+alpha*(E_prev_tmp[i+1]+E_prev_tmp[i-1]-4*E_prev_tmp[i]+E_prev_tmp[i+(n+2)]+E_prev_tmp[i-(n+2)]);
+
+
+  // E_tmp[i] += -dt*(kk*E_prev_tmp[i]*(E_prev_tmp[i]-a)*(E_prev_tmp[i]-1)+E_prev_tmp[i]*R_tmp[i]);
+  // R_tmp[i] += dt*(epsilon+M1* R_tmp[i]/( E_prev_tmp[i]+M2))*(-R_tmp[i]-kk*E_prev_tmp[i]*(E_prev_tmp[i]-b-1));
+}
+
 // #ifdef SSE_VEC
 // If you intend to vectorize using SSE instructions, you must
 // disable the compiler's auto-vectorizer
@@ -85,6 +128,20 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
   MPI_Type_vector(m, 1, n + 2, MPI_DOUBLE, &bufferTypeColumn); // column buffer
   MPI_Type_commit(&bufferTypeRow);
   MPI_Type_commit(&bufferTypeColumn);
+
+  mem_E_tmp = (double **)malloc(4*sizeof(double*));
+  mem_E_prev_tmp = (double **)malloc(4*sizeof(double*));
+  mem_R_tmp = (double **)malloc(4*sizeof(double*));
+
+  if (posix_memalign((void **) &mem_E_tmp[0], ALIGNMENT, (BLOCK_SIZE_0+2)*(BLOCK_SIZE_0+2)*sizeof(double)) != 0) {
+      printf("[ERROR] posix_memalign: failed in REDUCE_CONFLICT_3 (&mem_E_tmp)\n");
+  }
+  if (posix_memalign((void **) &mem_E_prev_tmp[0], ALIGNMENT, (BLOCK_SIZE_0+2)*(BLOCK_SIZE_0+2)*sizeof(double)) != 0) {
+      printf("[ERROR] posix_memalign: failed in REDUCE_CONFLICT_3 (&mem_E_prev_tmp)\n");
+  }
+  if (posix_memalign((void **) &mem_R_tmp[0], ALIGNMENT, (BLOCK_SIZE_0+2)*(BLOCK_SIZE_0+2)*sizeof(double)) != 0) {
+      printf("[ERROR] posix_memalign: failed in REDUCE_CONFLICT_3 (&mem_R_tmp)\n");
+  }
 
  // We continue to sweep over the mesh until the simulation has reached
  // the desired number of iterations
@@ -200,12 +257,32 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
 
 #ifdef FUSED
     // Solve for the excitation, a PDE
+    const int lda = n+2;
+    double * blk_E_prev_tmp = mem_E_prev_tmp[0];
+    double * blk_R_tmp = mem_R_tmp[0];
+    double * blk_E_tmp = mem_E_tmp[0];
+
+    for (int i=1; i<=m; i+=BLOCK_SIZE_0) {
+      for (int j=1; j<=n; j+=BLOCK_SIZE_0) {
+        const int M = min (BLOCK_SIZE_0+2, m+2-i);
+        const int N = min (BLOCK_SIZE_0+2, n+2-j);
+
+        copy_blk_pad(blk_E_prev_tmp, BLOCK_SIZE_0+2, BLOCK_SIZE_0+2, BLOCK_SIZE_0+2, E_prev_tmp + (i-1)*lda + j-1, M, N, lda);
+        copy_blk_pad(blk_R_tmp, BLOCK_SIZE_0+2, BLOCK_SIZE_0+2, BLOCK_SIZE_0+2, R_tmp + (i-1)*lda + j-1, M, N, lda);
+
+        do_block_0_fused(blk_E_prev_tmp, blk_R_tmp, blk_E_tmp, BLOCK_SIZE_0, BLOCK_SIZE_0, BLOCK_SIZE_0, alpha, dt);
+
+        copy_blk_pad(E_tmp+i*lda+j, M-2, N-2, lda, blk_E_tmp+BLOCK_SIZE_0+1, M-2, N-2, BLOCK_SIZE_0+2);
+        copy_blk_pad(R_tmp+i*lda+j, M-2, N-2, lda, blk_R_tmp+BLOCK_SIZE_0+1, M-2, N-2, BLOCK_SIZE_0+2);
+      }
+    }
+
     for(j = innerBlockRowStartIndex; j <= innerBlockRowEndIndex; j+=(n+2)) {
         E_tmp = E + j;
-	E_prev_tmp = E_prev + j;
+        E_prev_tmp = E_prev + j;
         R_tmp = R + j;
-	for(i = 0; i < n; i++) {
-	    E_tmp[i] = E_prev_tmp[i]+alpha*(E_prev_tmp[i+1]+E_prev_tmp[i-1]-4*E_prev_tmp[i]+E_prev_tmp[i+(n+2)]+E_prev_tmp[i-(n+2)]);
+        for(i = 0; i < n; i++) {
+            E_tmp[i] = E_prev_tmp[i]+alpha*(E_prev_tmp[i+1]+E_prev_tmp[i-1]-4*E_prev_tmp[i]+E_prev_tmp[i+(n+2)]+E_prev_tmp[i-(n+2)]);
             E_tmp[i] += -dt*(kk*E_prev_tmp[i]*(E_prev_tmp[i]-a)*(E_prev_tmp[i]-1)+E_prev_tmp[i]*R_tmp[i]);
             R_tmp[i] += dt*(epsilon+M1* R_tmp[i]/( E_prev_tmp[i]+M2))*(-R_tmp[i]-kk*E_prev_tmp[i]*(E_prev_tmp[i]-b-1));
         }
