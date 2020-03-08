@@ -71,7 +71,6 @@ static inline void copy_blk_pad (double* dst, int dh, int dw, int dlda, double* 
   }
   if (dh > sh) memset(dst+sh*dlda, 0, (dh-sh)*dw*sizeof(double));
 }
-#endif
 
 // do_block_0_fused(blk_E_prev_tmp, blk_R_tmp, blk_E_tmp, BLOCK_SIZE_0, BLOCK_SIZE_0, BLOCK_SIZE_0);
 static inline void do_block_1_fused(double *E_prev, double *R, double *E,
@@ -177,6 +176,7 @@ static inline void do_block_0_unfused_B(double *E_prev, double *R, double *E,
         const int N = min (BLOCK_SIZE_1+2, n+3-j);
 
         copy_blk_pad(blk_E_prev_tmp, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, E_prev + (i-1)*lda + j-1, M, N, lda);
+        copy_blk_pad(blk_E_tmp, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, E + (i-1)*lda + j-1, M, N, lda);
         copy_blk_pad(blk_R_tmp, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, R + (i-1)*lda + j-1, M, N, lda);
 
         do_block_1_unfused_B(blk_E_prev_tmp, blk_R_tmp, blk_E_tmp, BLOCK_SIZE_1, BLOCK_SIZE_1, BLOCK_SIZE_1+2, alpha, dt);
@@ -186,6 +186,7 @@ static inline void do_block_0_unfused_B(double *E_prev, double *R, double *E,
       }
     }
 }
+#endif /* BLOCKING */
 
 // #ifdef SSE_VEC
 // If you intend to vectorize using SSE instructions, you must
