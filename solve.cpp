@@ -17,6 +17,8 @@
 #include "apf.h"
 #include "Plotting.h"
 #include "cblock.h"
+#include <string.h>
+#include <malloc.h>
 #include <emmintrin.h>
 
 #include <mpi.h>
@@ -41,6 +43,48 @@ pair<int, int> decomposeRank(int rank, int x, int y);
 void gather(int m, int n, double &sumSq, Plotter *plotter, double &L2, double &Linf);
 
 extern control_block cb;
+
+static double** mem_E_tmp;
+static double** mem_E_prev_tmp;
+static double** mem_R_tmp;
+
+#define ALIGNMENT 256
+#ifndef BLOCKING
+  #define BLOCKING 1
+#endif
+#ifndef FUSED
+  #define FUSED 1
+#endif
+#define BLOCK_SIZE_0 50
+
+#if BLOCKING
+static inline void copy_blk_pad (double* dst, int dh, int dw, int dlda, double* src, int sh, int sw, int slda) {
+  // if (dw>sw || dh>sh) memset(dst, 0, dh*dw*sizeof(double));
+  for (int i=0; i<sh; i++) {
+    memcpy(dst+i*dlda, src+i*slda, sw*sizeof(double));
+    if (dw>sw) memset(dst+i*dlda+sw, 0, (dw-sw)*sizeof(double));
+  }
+  if (dh > sh) memset(dst+sh*dlda, 0, (dh-sh)*dw*sizeof(double));
+}
+#endif
+
+// do_block_0_fused(blk_E_prev_tmp, blk_R_tmp, blk_E_tmp, BLOCK_SIZE_0, BLOCK_SIZE_0, BLOCK_SIZE_0);
+static inline void do_block_0_fused(double *E_prev, double *R, double *E,
+                                    int m, int n, int lda, double alpha, double dt) {
+  const int innerBlockRowStartIndex = (n+2)+1;
+  const int innerBlockRowEndIndex = (((m+2)*(n+2) - 1) - (n)) - (n+2);
+
+  for(int j = innerBlockRowStartIndex; j <= innerBlockRowEndIndex; j+=(n+2)) {
+      double *E_tmp = E + j;
+      double *E_prev_tmp = E_prev + j;
+      double *R_tmp = R + j;
+      for(int i = 0; i < n; i++) {
+          E_tmp[i] = E_prev_tmp[i]+alpha*(E_prev_tmp[i+1]+E_prev_tmp[i-1]-4*E_prev_tmp[i]+E_prev_tmp[i+(n+2)]+E_prev_tmp[i-(n+2)]);
+          E_tmp[i] += -dt*(kk*E_prev_tmp[i]*(E_prev_tmp[i]-a)*(E_prev_tmp[i]-1)+E_prev_tmp[i]*R_tmp[i]);
+          R_tmp[i] += dt*(epsilon+M1* R_tmp[i]/( E_prev_tmp[i]+M2))*(-R_tmp[i]-kk*E_prev_tmp[i]*(E_prev_tmp[i]-b-1));
+      }
+  }
+}
 
 // #ifdef SSE_VEC
 // If you intend to vectorize using SSE instructions, you must
@@ -73,9 +117,9 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
   const int rank = getRank();
   const auto blockRank = decomposeRank(rank, cb.px, cb.py);
   const int rankx = blockRank.first, ranky = blockRank.second;
- const int m = blockSize.first, n = blockSize.second;
- int innerBlockRowStartIndex = (n+2)+1;
- int innerBlockRowEndIndex = (((m+2)*(n+2) - 1) - (n)) - (n+2);
+  const int m = blockSize.first, n = blockSize.second;
+  const int innerBlockRowStartIndex = (n+2)+1;
+  const int innerBlockRowEndIndex = (((m+2)*(n+2) - 1) - (n)) - (n+2);
 
   MPI_Request req;
 
@@ -86,7 +130,21 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
   MPI_Type_commit(&bufferTypeRow);
   MPI_Type_commit(&bufferTypeColumn);
 
-// #define DISABLE_COMMUNICATION
+#if BLOCKING
+  mem_E_tmp = (double **)malloc(4*sizeof(double*));
+  mem_E_prev_tmp = (double **)malloc(4*sizeof(double*));
+  mem_R_tmp = (double **)malloc(4*sizeof(double*));
+
+  if (posix_memalign((void **) &mem_E_tmp[0], ALIGNMENT, (BLOCK_SIZE_0+2)*(BLOCK_SIZE_0+2)*sizeof(double)) != 0) {
+      printf("[ERROR] posix_memalign: failed in REDUCE_CONFLICT_3 (&mem_E_tmp)\n");
+  }
+  if (posix_memalign((void **) &mem_E_prev_tmp[0], ALIGNMENT, (BLOCK_SIZE_0+2)*(BLOCK_SIZE_0+2)*sizeof(double)) != 0) {
+      printf("[ERROR] posix_memalign: failed in REDUCE_CONFLICT_3 (&mem_E_prev_tmp)\n");
+  }
+  if (posix_memalign((void **) &mem_R_tmp[0], ALIGNMENT, (BLOCK_SIZE_0+2)*(BLOCK_SIZE_0+2)*sizeof(double)) != 0) {
+      printf("[ERROR] posix_memalign: failed in REDUCE_CONFLICT_3 (&mem_R_tmp)\n");
+  }
+#endif
 
  // We continue to sweep over the mesh until the simulation has reached
  // the desired number of iterations
@@ -118,124 +176,121 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
     vector<MPI_Request> reqs;
 
     // Fills in the TOP Ghost Cells
-    if (rankx == 0) {
+    if (cb.noComm || rankx == 0) {
       for (i = 0; i < (n+2); i++) {
         E_prev[i] = E_prev[i + (n+2)*2];
       }
-    } else {
+    } else if (!cb.noComm) {
       // communicate
-#ifndef DISABLE_COMMUNICATION
-      MPI_Isend(&E[1 + (n+2)*1], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
       MPI_Isend(&E_prev[1 + (n+2)*1], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Isend(&R[1 + (n+2)*1], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
-      MPI_Irecv(&E[1 + (n+2)*0], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Irecv(&E_prev[1 + (n+2)*0], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Irecv(&R[1 + (n+2)*0], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
-#endif
     }
 
-
-
     // Fills in the RIGHT Ghost Cells
-    if (ranky + 1 == cb.py) {
+    if (cb.noComm || ranky + 1 == cb.py) {
       for (i = (n+1); i < (m+2)*(n+2); i+=(n+2)) {
         E_prev[i] = E_prev[i-2];
       }
-    } else {
+    } else if (!cb.noComm) {
       // communicate
-#ifndef DISABLE_COMMUNICATION
-      MPI_Isend(&E[n + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
       MPI_Isend(&E_prev[n + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Isend(&R[n + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
-      MPI_Irecv(&E[n+1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Irecv(&E_prev[n+1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Irecv(&R[n+1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
-#endif
     }
 
 
     // Fills in the LEFT Ghost Cells
-    if (ranky == 0) {
+    if (cb.noComm || ranky == 0) {
       for (i = 0; i < (m+2)*(n+2); i+=(n+2)) {
         E_prev[i] = E_prev[i+2];
       }
-    } else {
+    } else if (!cb.noComm) {
       // communicate
-#ifndef DISABLE_COMMUNICATION
-      MPI_Isend(&E[1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
       MPI_Isend(&E_prev[1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Isend(&R[1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
-      MPI_Irecv(&E[0 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Irecv(&E_prev[0 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Irecv(&R[0 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
-#endif
     }
 
 
     // Fills in the BOTTOM Ghost Cells
-    if (rankx + 1 == cb.px) {
+    if (cb.noComm || rankx + 1 == cb.px) {
       for (i = ((m+2)*(n+2)-(n+2)); i < (m+2)*(n+2); i++) {
         E_prev[i] = E_prev[i - (n+2)*2];
       }
-    } else {
+    } else if (!cb.noComm) {
       // communicate
-#ifndef DISABLE_COMMUNICATION
-      MPI_Isend(&E[1 + (n+2)*m], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
       MPI_Isend(&E_prev[1 + (n+2)*m], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Isend(&R[1 + (n+2)*m], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
-      MPI_Irecv(&E[1 + (n+2)*(m+1)], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_E, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Irecv(&E_prev[1 + (n+2)*(m+1)], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
       MPI_Irecv(&R[1 + (n+2)*(m+1)], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
-#endif
     }
 
-#ifndef DISABLE_COMMUNICATION
-    vector<MPI_Status> status(reqs.size());
-    MPI_Waitall(reqs.size(), reqs.data(), status.data());
-#endif
+    if (!cb.noComm) {
+      vector<MPI_Status> status(reqs.size());
+      MPI_Waitall(reqs.size(), reqs.data(), status.data());
+    }
     MPI_Barrier(MPI_COMM_WORLD);
 
 
 //////////////////////////////////////////////////////////////////////////////
 
-#define FUSED 1
-
-#ifdef FUSED
+#if FUSED
     // Solve for the excitation, a PDE
-    for(j = innerBlockRowStartIndex; j <= innerBlockRowEndIndex; j+=(n+2)) {
-        E_tmp = E + j;
-	E_prev_tmp = E_prev + j;
-        R_tmp = R + j;
-	for(i = 0; i < n; i++) {
-	    E_tmp[i] = E_prev_tmp[i]+alpha*(E_prev_tmp[i+1]+E_prev_tmp[i-1]-4*E_prev_tmp[i]+E_prev_tmp[i+(n+2)]+E_prev_tmp[i-(n+2)]);
+    const int lda = n+2;
+    double * blk_E_prev_tmp = mem_E_prev_tmp[0];
+    double * blk_R_tmp = mem_R_tmp[0];
+    double * blk_E_tmp = mem_E_tmp[0];
+
+#if BLOCKING
+    for (int i=1; i<=m; i+=BLOCK_SIZE_0) {
+      for (int j=1; j<=n; j+=BLOCK_SIZE_0) {
+        const int M = min (BLOCK_SIZE_0+2, m+3-i);
+        const int N = min (BLOCK_SIZE_0+2, n+3-j);
+
+        copy_blk_pad(blk_E_prev_tmp, BLOCK_SIZE_0+2, BLOCK_SIZE_0+2, BLOCK_SIZE_0+2, E_prev + (i-1)*lda + j-1, M, N, lda);
+        copy_blk_pad(blk_R_tmp, BLOCK_SIZE_0+2, BLOCK_SIZE_0+2, BLOCK_SIZE_0+2, R + (i-1)*lda + j-1, M, N, lda);
+        // copy_blk_pad(blk_E_tmp, BLOCK_SIZE_0+2, BLOCK_SIZE_0+2, BLOCK_SIZE_0+2, E_tmp + (i-1)*lda + j-1, M, N, lda);
+
+        do_block_0_fused(blk_E_prev_tmp, blk_R_tmp, blk_E_tmp, BLOCK_SIZE_0, BLOCK_SIZE_0, BLOCK_SIZE_0+2, alpha, dt);
+
+        copy_blk_pad(E+i*lda+j, M-2, N-2, lda, blk_E_tmp+(BLOCK_SIZE_0+2)+1, M-2, N-2, BLOCK_SIZE_0+2);
+        copy_blk_pad(R+i*lda+j, M-2, N-2, lda, blk_R_tmp+(BLOCK_SIZE_0+2)+1, M-2, N-2, BLOCK_SIZE_0+2);
+        // copy_blk_pad(E_prev_tmp+i*lda+j, M-2, N-2, lda, blk_E_prev_tmp+(BLOCK_SIZE_0+2)+1, M-2, N-2, BLOCK_SIZE_0+2);
+
+      }
+    }
+#else
+    for(int j = innerBlockRowStartIndex; j <= innerBlockRowEndIndex; j+=(n+2)) {
+        double *E_tmp = E + j;
+        double *E_prev_tmp = E_prev + j;
+        double *R_tmp = R + j;
+        for(int i = 0; i < n; i++) {
+            E_tmp[i] = E_prev_tmp[i]+alpha*(E_prev_tmp[i+1]+E_prev_tmp[i-1]-4*E_prev_tmp[i]+E_prev_tmp[i+(n+2)]+E_prev_tmp[i-(n+2)]);
             E_tmp[i] += -dt*(kk*E_prev_tmp[i]*(E_prev_tmp[i]-a)*(E_prev_tmp[i]-1)+E_prev_tmp[i]*R_tmp[i]);
             R_tmp[i] += dt*(epsilon+M1* R_tmp[i]/( E_prev_tmp[i]+M2))*(-R_tmp[i]-kk*E_prev_tmp[i]*(E_prev_tmp[i]-b-1));
         }
     }
+#endif
 #else
     // Solve for the excitation, a PDE
     for(j = innerBlockRowStartIndex; j <= innerBlockRowEndIndex; j+=(n+2)) {

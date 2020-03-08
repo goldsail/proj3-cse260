@@ -17,7 +17,7 @@ pwd
 echo
 echo " *** Compiler"
 # Output which  compiler are we using and the environment
-mpicc -v 
+mpicc -v
 echo
 echo " *** Environment"
 printenv
@@ -29,11 +29,34 @@ date
 
 mpirun -np 1 ./apf -n 400 -i 2000 -x 1 -y 1
 mpirun -np 2 ./apf -n 400 -i 2000 -x 1 -y 2
+mpirun -np 2 ./apf -n 400 -i 2000 -x 2 -y 1
 mpirun -np 4 ./apf -n 400 -i 2000 -x 1 -y 4
+mpirun -np 4 ./apf -n 400 -i 2000 -x 2 -y 2
+mpirun -np 4 ./apf -n 400 -i 2000 -x 4 -y 1
 mpirun -np 8 ./apf -n 400 -i 2000 -x 1 -y 8
+mpirun -np 8 ./apf -n 400 -i 2000 -x 2 -y 4
+mpirun -np 8 ./apf -n 400 -i 2000 -x 4 -y 2
+mpirun -np 8 ./apf -n 400 -i 2000 -x 8 -y 1
+mpirun -np 16 ./apf -n 400 -i 2000 -x 1 -y 16
+mpirun -np 16 ./apf -n 400 -i 2000 -x 2 -y 8
+mpirun -np 16 ./apf -n 400 -i 2000 -x 4 -y 4
+mpirun -np 16 ./apf -n 400 -i 2000 -x 8 -y 2
+mpirun -np 16 ./apf -n 400 -i 2000 -x 16 -y 1
+
 mpirun -np 2 ./apf -n 400 -i 2000 -x 1 -y 2 -k
+mpirun -np 2 ./apf -n 400 -i 2000 -x 2 -y 1 -k
 mpirun -np 4 ./apf -n 400 -i 2000 -x 1 -y 4 -k
+mpirun -np 4 ./apf -n 400 -i 2000 -x 2 -y 2 -k
+mpirun -np 4 ./apf -n 400 -i 2000 -x 4 -y 1 -k
 mpirun -np 8 ./apf -n 400 -i 2000 -x 1 -y 8 -k
+mpirun -np 8 ./apf -n 400 -i 2000 -x 2 -y 4 -k
+mpirun -np 8 ./apf -n 400 -i 2000 -x 4 -y 2 -k
+mpirun -np 8 ./apf -n 400 -i 2000 -x 8 -y 1 -k
+mpirun -np 16 ./apf -n 400 -i 2000 -x 1 -y 16 -k
+mpirun -np 16 ./apf -n 400 -i 2000 -x 2 -y 8 -k
+mpirun -np 16 ./apf -n 400 -i 2000 -x 4 -y 4 -k
+mpirun -np 16 ./apf -n 400 -i 2000 -x 8 -y 2 -k
+mpirun -np 16 ./apf -n 400 -i 2000 -x 16 -y 1 -k
 
 date
 echo ">>> Job Ends"
