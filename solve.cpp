@@ -103,14 +103,86 @@ static inline void do_block_0_fused(double *E_prev, double *R, double *E,
 
         copy_blk_pad(blk_E_prev_tmp, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, E_prev + (i-1)*lda + j-1, M, N, lda);
         copy_blk_pad(blk_R_tmp, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, R + (i-1)*lda + j-1, M, N, lda);
-        // copy_blk_pad(blk_E_tmp, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, E_tmp + (i-1)*lda + j-1, M, N, lda);
 
         do_block_1_fused(blk_E_prev_tmp, blk_R_tmp, blk_E_tmp, BLOCK_SIZE_1, BLOCK_SIZE_1, BLOCK_SIZE_1+2, alpha, dt);
 
         copy_blk_pad(E+i*lda+j, M-2, N-2, lda, blk_E_tmp+(BLOCK_SIZE_1+2)+1, M-2, N-2, BLOCK_SIZE_1+2);
         copy_blk_pad(R+i*lda+j, M-2, N-2, lda, blk_R_tmp+(BLOCK_SIZE_1+2)+1, M-2, N-2, BLOCK_SIZE_1+2);
-        // copy_blk_pad(E_prev_tmp+i*lda+j, M-2, N-2, lda, blk_E_prev_tmp+(BLOCK_SIZE_1+2)+1, M-2, N-2, BLOCK_SIZE_1+2);
+      }
+    }
+}
 
+static inline void do_block_1_unfused_A(double *E_prev, double *R, double *E,
+                                    int m, int n, int lda, double alpha, double dt) {
+  // assert(lda == n+2);
+  const int innerBlockRowStartIndex = (n+2)+1;
+  const int innerBlockRowEndIndex = (((m+2)*(n+2) - 1) - (n)) - (n+2);
+
+  for(int j = innerBlockRowStartIndex; j <= innerBlockRowEndIndex; j+=(n+2)) {
+      double *E_tmp = E + j;
+      double *E_prev_tmp = E_prev + j;
+      double *R_tmp = R + j;
+      for(int i = 0; i < n; i++) {
+        E_tmp[i] = E_prev_tmp[i]+alpha*(E_prev_tmp[i+1]+E_prev_tmp[i-1]-4*E_prev_tmp[i]+E_prev_tmp[i+(n+2)]+E_prev_tmp[i-(n+2)]);
+      }
+  }
+}
+
+static inline void do_block_1_unfused_B(double *E_prev, double *R, double *E,
+                                    int m, int n, int lda, double alpha, double dt) {
+  // assert(lda == n+2);
+  const int innerBlockRowStartIndex = (n+2)+1;
+  const int innerBlockRowEndIndex = (((m+2)*(n+2) - 1) - (n)) - (n+2);
+
+  for(int j = innerBlockRowStartIndex; j <= innerBlockRowEndIndex; j+=(n+2)) {
+      double *E_tmp = E + j;
+      double *E_prev_tmp = E_prev + j;
+      double *R_tmp = R + j;
+      for(int i = 0; i < n; i++) {
+        E_tmp[i] += -dt*(kk*E_prev_tmp[i]*(E_prev_tmp[i]-a)*(E_prev_tmp[i]-1)+E_prev_tmp[i]*R_tmp[i]);
+	      R_tmp[i] += dt*(epsilon+M1* R_tmp[i]/( E_prev_tmp[i]+M2))*(-R_tmp[i]-kk*E_prev_tmp[i]*(E_prev_tmp[i]-b-1));
+      }
+  }
+}
+
+
+
+static inline void do_block_0_unfused_A(double *E_prev, double *R, double *E,
+                                    int m, int n, int lda, double alpha, double dt) {
+    double * blk_E_prev_tmp = mem_E_prev_tmp[0];
+    double * blk_R_tmp = mem_R_tmp[0];
+    double * blk_E_tmp = mem_E_tmp[0];
+    for (int i=1; i<=m; i+=BLOCK_SIZE_1) {
+      for (int j=1; j<=n; j+=BLOCK_SIZE_1) {
+        const int M = min (BLOCK_SIZE_1+2, m+3-i);
+        const int N = min (BLOCK_SIZE_1+2, n+3-j);
+
+        copy_blk_pad(blk_E_prev_tmp, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, E_prev + (i-1)*lda + j-1, M, N, lda);
+
+        do_block_1_unfused_A(blk_E_prev_tmp, blk_R_tmp, blk_E_tmp, BLOCK_SIZE_1, BLOCK_SIZE_1, BLOCK_SIZE_1+2, alpha, dt);
+
+        copy_blk_pad(E+i*lda+j, M-2, N-2, lda, blk_E_tmp+(BLOCK_SIZE_1+2)+1, M-2, N-2, BLOCK_SIZE_1+2);
+      }
+    }
+}
+
+static inline void do_block_0_unfused_B(double *E_prev, double *R, double *E,
+                                    int m, int n, int lda, double alpha, double dt) {
+    double * blk_E_prev_tmp = mem_E_prev_tmp[0];
+    double * blk_R_tmp = mem_R_tmp[0];
+    double * blk_E_tmp = mem_E_tmp[0];
+    for (int i=1; i<=m; i+=BLOCK_SIZE_1) {
+      for (int j=1; j<=n; j+=BLOCK_SIZE_1) {
+        const int M = min (BLOCK_SIZE_1+2, m+3-i);
+        const int N = min (BLOCK_SIZE_1+2, n+3-j);
+
+        copy_blk_pad(blk_E_prev_tmp, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, E_prev + (i-1)*lda + j-1, M, N, lda);
+        copy_blk_pad(blk_R_tmp, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, BLOCK_SIZE_1+2, R + (i-1)*lda + j-1, M, N, lda);
+
+        do_block_1_unfused_B(blk_E_prev_tmp, blk_R_tmp, blk_E_tmp, BLOCK_SIZE_1, BLOCK_SIZE_1, BLOCK_SIZE_1+2, alpha, dt);
+
+        copy_blk_pad(E+i*lda+j, M-2, N-2, lda, blk_E_tmp+(BLOCK_SIZE_1+2)+1, M-2, N-2, BLOCK_SIZE_1+2);
+        copy_blk_pad(R+i*lda+j, M-2, N-2, lda, blk_R_tmp+(BLOCK_SIZE_1+2)+1, M-2, N-2, BLOCK_SIZE_1+2);
       }
     }
 }
@@ -296,7 +368,7 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
         do_block_0_fused(E_prev+offset, R+offset, E+offset, M, N, n+2, alpha, dt);
       }
     }
-#else
+#else // BLOCKING
     for(int j = innerBlockRowStartIndex; j <= innerBlockRowEndIndex; j+=(n+2)) {
         double *E_tmp = E + j;
         double *E_prev_tmp = E_prev + j;
@@ -307,8 +379,26 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
             R_tmp[i] += dt*(epsilon+M1* R_tmp[i]/( E_prev_tmp[i]+M2))*(-R_tmp[i]-kk*E_prev_tmp[i]*(E_prev_tmp[i]-b-1));
         }
     }
-#endif
-#else
+#endif // BLOCKING
+#else // FUSED
+#if BLOCKING
+    for (int i=1; i<=m; i+=BLOCK_SIZE_0) {
+      for (int j=1; j<=n; j+=BLOCK_SIZE_0) {
+        const int offset = (i-1)*(n+2)+(j-1);
+        const int M = min (BLOCK_SIZE_0, m+1-i);
+        const int N = min (BLOCK_SIZE_0, n+1-j);
+        do_block_0_unfused_A(E_prev+offset, R+offset, E+offset, M, N, n+2, alpha, dt);
+      }
+    }
+    for (int i=1; i<=m; i+=BLOCK_SIZE_0) {
+      for (int j=1; j<=n; j+=BLOCK_SIZE_0) {
+        const int offset = (i-1)*(n+2)+(j-1);
+        const int M = min (BLOCK_SIZE_0, m+1-i);
+        const int N = min (BLOCK_SIZE_0, n+1-j);
+        do_block_0_unfused_B(E_prev+offset, R+offset, E+offset, M, N, n+2, alpha, dt);
+      }
+    }
+#else // BLOCKING
     // Solve for the excitation, a PDE
     for(j = innerBlockRowStartIndex; j <= innerBlockRowEndIndex; j+=(n+2)) {
         E_tmp = E + j;
@@ -332,7 +422,8 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
 	  R_tmp[i] += dt*(epsilon+M1* R_tmp[i]/( E_prev_tmp[i]+M2))*(-R_tmp[i]-kk*E_prev_tmp[i]*(E_prev_tmp[i]-b-1));
         }
     }
-#endif
+#endif // BLOCKING
+#endif // FUSED
      /////////////////////////////////////////////////////////////////////////////////
 
    if (cb.stats_freq){
