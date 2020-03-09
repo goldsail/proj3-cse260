@@ -448,7 +448,15 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
 
   // gather information back
   stats(E_prev,m,n,&Linf,&sumSq);
-  gather(m, n, sumSq, plotter, L2, Linf);
+  // gather(m, n, sumSq, plotter, L2, Linf);
+
+  double tmpLinf = Linf, tmpSumSq = sumSq;
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  MPI_Reduce(&tmpLinf, &Linf, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&tmpSumSq, &sumSq, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+  L2 = L2Norm(sumSq);
 
   // Swap pointers so we can re-use the arrays
   *_E = E;
