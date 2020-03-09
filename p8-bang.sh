@@ -41,7 +41,7 @@
 #$ -q debug.q
 #
 # Specifies the circumstances under which mail is to be sent to the job owner
-# defined by -M option. For example, options "bea" cause mail to be sent at the 
+# defined by -M option. For example, options "bea" cause mail to be sent at the
 # begining, end, and at abort time (if it happens) of the job.
 # Option "n" means no mail will be sent.
 #$ -m aeb
@@ -73,8 +73,21 @@ date
 
 mpirun -np 1 ./apf -n 400 -i 2000 -x 1 -y 1
 mpirun -np 2 ./apf -n 400 -i 2000 -x 1 -y 2
+mpirun -np 2 ./apf -n 400 -i 2000 -x 2 -y 1
 mpirun -np 4 ./apf -n 400 -i 2000 -x 1 -y 4
+mpirun -np 4 ./apf -n 400 -i 2000 -x 2 -y 2
+mpirun -np 4 ./apf -n 400 -i 2000 -x 4 -y 1
 mpirun -np 8 ./apf -n 400 -i 2000 -x 1 -y 8
+mpirun -np 8 ./apf -n 400 -i 2000 -x 2 -y 4
+mpirun -np 8 ./apf -n 400 -i 2000 -x 4 -y 2
+mpirun -np 8 ./apf -n 400 -i 2000 -x 8 -y 1
+
 mpirun -np 2 ./apf -n 400 -i 2000 -x 1 -y 2 -k
+mpirun -np 2 ./apf -n 400 -i 2000 -x 2 -y 1 -k
 mpirun -np 4 ./apf -n 400 -i 2000 -x 1 -y 4 -k
+mpirun -np 4 ./apf -n 400 -i 2000 -x 2 -y 2 -k
+mpirun -np 4 ./apf -n 400 -i 2000 -x 4 -y 1 -k
 mpirun -np 8 ./apf -n 400 -i 2000 -x 1 -y 8 -k
+mpirun -np 8 ./apf -n 400 -i 2000 -x 2 -y 4 -k
+mpirun -np 8 ./apf -n 400 -i 2000 -x 4 -y 2 -k
+mpirun -np 8 ./apf -n 400 -i 2000 -x 8 -y 1 -k

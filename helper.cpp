@@ -26,8 +26,6 @@ using namespace std;
 #include <mpi.h>
 extern control_block cb;
 
-// #define DISABLE_COMMUNICATION
-
 void repNorms(double l2norm, double mx, double dt, int m,int n, int niter, int stats_freq);
 void stats(double *E, int m, int n, double *_mx, double *sumSq);
 void printMat2(const char mesg[], double *E, int m, int n);
@@ -42,9 +40,10 @@ int composeRank(int rankx, int ranky, int x, int y);
 pair<int, int> decomposeRank(int rank, int x, int y);
 
 void gather(int m, int n, double &sumSq, Plotter *plotter, double &L2, double &Linf) {
-#ifdef DISABLE_COMMUNICATION
-  return;
-#endif
+  if (cb.noComm) {
+    L2 = L2Norm(sumSq);
+    return;
+  }
 
   // printf("[INFO] gather result at node %d\n", getRank());
   int M = cb.m;
@@ -52,12 +51,16 @@ void gather(int m, int n, double &sumSq, Plotter *plotter, double &L2, double &L
   double *ssqs, *maxs;
 
   vector<MPI_Request> reqs;
+  MPI_Datatype bufferTypeBlock;
+  MPI_Type_vector(1, 1, 1, MPI_DOUBLE, &bufferTypeBlock); // block buffer
+  MPI_Type_commit(&bufferTypeBlock);
 
   if (getRank() == 0) {
     ssqs = (double*)malloc(sizeof(double) * cb.px * cb.py);
     maxs = (double*)malloc(sizeof(double) * cb.px * cb.py);
     int curX, curY;
     int posX = 0;
+
     for (int rx = 0; rx < cb.px; rx++, posX += (curX - 1)) {
       int posY = 0;
       for (int ry = 0; ry < cb.py; ry++, posY += (curY - 1)) {
@@ -68,9 +71,6 @@ void gather(int m, int n, double &sumSq, Plotter *plotter, double &L2, double &L
         }
         int rank = composeRank(rx, ry, cb.px, cb.py);
         MPI_Request req;
-        MPI_Datatype bufferTypeBlock;
-        MPI_Type_vector(1, 1, 1, MPI_DOUBLE, &bufferTypeBlock); // block buffer
-        MPI_Type_commit(&bufferTypeBlock);
         MPI_Irecv(&ssqs[rx*cb.py + ry], 1, bufferTypeBlock, rank, TAG_GATH_SUMS, MPI_COMM_WORLD, &req);
         reqs.push_back(req);
         MPI_Irecv(&maxs[rx*cb.py + ry], 1, bufferTypeBlock, rank, TAG_GATH_LINF, MPI_COMM_WORLD, &req);
@@ -81,9 +81,6 @@ void gather(int m, int n, double &sumSq, Plotter *plotter, double &L2, double &L
 
   {
     MPI_Request req;
-    MPI_Datatype bufferTypeBlock;
-    MPI_Type_vector(1, 1, 1, MPI_DOUBLE, &bufferTypeBlock); // block buffer
-    MPI_Type_commit(&bufferTypeBlock);
     MPI_Isend(&sumSq, 1, bufferTypeBlock, 0, TAG_GATH_SUMS, MPI_COMM_WORLD, &req);
     reqs.push_back(req);
     MPI_Isend(&Linf, 1, bufferTypeBlock, 0, TAG_GATH_LINF, MPI_COMM_WORLD, &req);
@@ -157,10 +154,10 @@ void init (double *E,double *E_prev,double *R,int m,int n){
       n = tmp.second; // local size
     }
 
-#ifdef DISABLE_COMMUNICATION
-    fill(E_prev, R, m, n);
-    return;
-#endif
+    if (cb.noComm) {
+      fill(E_prev, R, m, n);
+      return;
+    }
 
     // node 0 initializes and sends to all nodes including itself
     if (getRank() == 0) {

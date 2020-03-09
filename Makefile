@@ -42,6 +42,8 @@ C++FLAGS += -msse -msse2
 #C++FLAGS += -ftree-vectorize -ftree-vectorizer-verbose=2 -march=native -DSSE_VEC
 endif
 
+C++FLAGS += $(MY_OPT)
+
 app:		apf
 
 OBJECTS = apf.o solve.o Plotting.o cmdLine.o Report.o utils.o helper.o
@@ -49,7 +51,7 @@ ifneq ($(mpi),1)
 OBJECTS += Timer.o
 endif
 
-apf:	        $(OBJECTS) 
+apf:	        $(OBJECTS)
 		$(C++LINK) $(LDFLAGS) -o $@ $(OBJECTS)  $(LDLIBS)
 
 tgz:
@@ -57,6 +59,6 @@ tgz:
 	-chmod 640 $(THE_ARCHIVE).tgz
 
 .PHONY: clean
-clean:	
+clean:
 	$(RM) *.o apf;
 	$(RM) core;
