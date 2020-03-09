@@ -286,12 +286,12 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
       // communicate
       MPI_Isend(&E_prev[1 + (n+2)*1], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
-      MPI_Isend(&R[1 + (n+2)*1], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
+      // MPI_Isend(&R[1 + (n+2)*1], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
+      // reqs.push_back(req);
       MPI_Irecv(&E_prev[1 + (n+2)*0], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
-      MPI_Irecv(&R[1 + (n+2)*0], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
+      // MPI_Irecv(&R[1 + (n+2)*0], 1, bufferTypeRow, composeRank(rankx - 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
+      // reqs.push_back(req);
     }
 
     // Fills in the RIGHT Ghost Cells
@@ -303,12 +303,12 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
       // communicate
       MPI_Isend(&E_prev[n + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
-      MPI_Isend(&R[n + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
+      // MPI_Isend(&R[n + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
+      // reqs.push_back(req);
       MPI_Irecv(&E_prev[n+1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
-      MPI_Irecv(&R[n+1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
+      // MPI_Irecv(&R[n+1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky + 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
+      // reqs.push_back(req);
     }
 
 
@@ -321,12 +321,12 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
       // communicate
       MPI_Isend(&E_prev[1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
-      MPI_Isend(&R[1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
+      // MPI_Isend(&R[1 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
+      // reqs.push_back(req);
       MPI_Irecv(&E_prev[0 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
-      MPI_Irecv(&R[0 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
+      // MPI_Irecv(&R[0 + (n+2)*1], 1, bufferTypeColumn, composeRank(rankx, ranky - 1, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
+      // reqs.push_back(req);
     }
 
 
@@ -339,12 +339,12 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
       // communicate
       MPI_Isend(&E_prev[1 + (n+2)*m], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
-      MPI_Isend(&R[1 + (n+2)*m], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
+      // MPI_Isend(&R[1 + (n+2)*m], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
+      // reqs.push_back(req);
       MPI_Irecv(&E_prev[1 + (n+2)*(m+1)], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_EP, MPI_COMM_WORLD, &req);
       reqs.push_back(req);
-      MPI_Irecv(&R[1 + (n+2)*(m+1)], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
-      reqs.push_back(req);
+      // MPI_Irecv(&R[1 + (n+2)*(m+1)], 1, bufferTypeRow, composeRank(rankx + 1, ranky, cb.px, cb.py), TAG_COMP_R, MPI_COMM_WORLD, &req);
+      // reqs.push_back(req);
     }
 
     if (!cb.noComm) {
@@ -448,7 +448,15 @@ void solve(double **_E, double **_E_prev, double *R, double alpha, double dt, Pl
 
   // gather information back
   stats(E_prev,m,n,&Linf,&sumSq);
-  gather(m, n, sumSq, plotter, L2, Linf);
+  // gather(m, n, sumSq, plotter, L2, Linf);
+
+  double tmpLinf = Linf, tmpSumSq = sumSq;
+  MPI_Barrier(MPI_COMM_WORLD);
+
+  MPI_Reduce(&tmpLinf, &Linf, 1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&tmpSumSq, &sumSq, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+
+  L2 = L2Norm(sumSq);
 
   // Swap pointers so we can re-use the arrays
   *_E = E;
