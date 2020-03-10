@@ -2,7 +2,7 @@
 
 #SBATCH -A csd562
 #SBATCH --job-name="pa3"
-#SBATCH --output="pa3.%j.%N.out"
+#SBATCH --output="pa3.data.out"
 #SBATCH --partition=compute
 #SBATCH --nodes=20
 #SBATCH --ntasks-per-node=24
