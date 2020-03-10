@@ -56,7 +56,7 @@ static double** mem_R_tmp;
   #define FUSED 1
 #endif
 #ifndef BLOCK_SIZE_0
-#define BLOCK_SIZE_0 200
+#define BLOCK_SIZE_0 500
 #endif
 #ifndef BLOCK_SIZE_1
 #define BLOCK_SIZE_1 50

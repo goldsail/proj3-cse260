@@ -1,45 +1,68 @@
                     CSE 260, Parallel Computation
                             (Winter 2019)
-           Department of Computer Science and Engineering 	
-                 University of California, San Diego 	
+           Department of Computer Science and Engineering
+                 University of California, San Diego
 
 
                Team Self Evaluation Form, Assignment #3
 
-Each team must submit one copy of this self evaluation form. 
+Each team must submit one copy of this self evaluation form.
 The members of each team should discuss how they
 worked together and what to write for the evaluation.
 If you worked alone leave column B blank
 
 (1) List the names of your team members:
 
-A:
+A: Yucheng Huang
 
- 
-B:
 
- 
- 
+B: Fan Jin
+
+
+
 (2) Estimate how much time each team member devoted to this project, in HOURS.
 
   	                        A 	       B
-meetings 	  	  	 
-coding 	  	  	 
-writeup 	  	  	 
-planning (alone) 	  	  	 
-total (including meetings) 	  	  	 
+meetings 	  	  	        20         20
+coding 	  	  	            8          8
+writeup 	  	  	        8          8
+planning (alone) 	  	  	6          6
+total (including meetings) 	42  	   42
 
 
 (3) Discuss the following.
 (a) If you worked in a team, what were the major responsibilities
     of each team member?
+    We did pair programming. Both of us know every details of our code.
+    We wrote report together,
+    although first half was mainly written by Yucheng and latter half by Fan.
 (b) Did you complete the assignment?
+    Yes, we did. We achieved expected results like 95% scaling.
 (c) What were your major strengths and weaknesses in doing this
     assignment (individually or in a team)?
+    Team: We had good teamwork during in-person meetings and online meetings.
+          We made full use of Git and GitHub issues, pull requests to track progress.
+          Pair programming turned out effective.
+          But, we started late, about 2 weeks ahead of deadline.
+          We didn't have time for extra credits.
+    Yucheng: Through the process of pair programming, we were able to learn from each other.
+            We could do better and do more work if we set detailed plans before meeting.
+    Fan: Thanks to previous socket programming experience,
+         I had no difficulty writing asynchronous send/recv code.
+         But, I found it hard to write AVX code for this complicated PDE solver.
+         That's why we decided to skip AVX part.
     If in a team, also discuss how your team worked together.
+    We first agreed on notation. Then we did pair programming.
+    We met in-person and online using Zoom.
+    We wrote report together on Word using shared editing.
 (d) What  lessons did you learn from these events.
+    Had we started earlier, we would have time for extra credits.
+    Time management is important.
 (e) If in a team, whether and how you plan to change the way
     your work together .
+    Fan: Personally, I enjoyed our teamwork. I don't think I need to change the way I worked.
+    Yucheng: Generally speaking, our teamwork is an enjoyable experience. 
+            We may set detailed plans or goals before meeting.
 (f) Anything else that comes to mind.
-
-
+    Performance on Comet is sometimes unpredictable.
+    In such cases, we would switch to the other member's Comet terminal to measure.
